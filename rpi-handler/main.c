@@ -7,24 +7,30 @@
 #define KEEPALIVE 60
 #define QOS 1
 
+int mqtt_init(struct mosquitto **mosq, char *host) {
+   mosquitto_lib_init();
+   *mosq = mosquitto_new(NULL, true, NULL);
+   if (!(*mosq)) {
+      return -1;
+   }
+   
+   if (mosquitto_connect(*mosq, host, HOST_PORT, KEEPALIVE)) {
+      return -2;
+   }
+   return 0;
+}
+
 int main(int argc, char *argv[]) {
    struct mosquitto *mosq = NULL;
-   bool clean_session = true;
    char *host = "35.164.180.85", *topic, *msg;
    int msgid;
 
-   mosquitto_lib_init();
-   mosq = mosquitto_new(NULL, clean_session, NULL);
-   if (!mosq) {
+   if (mqtt_init(&mosq, host)) {
       return 1;
    }
-   
-   if (mosquitto_connect(mosq, host, HOST_PORT, KEEPALIVE)) {
-      return 1;
-   }
-
+    
    topic = "test";
-   msg = "test MQTT message from C client";
+   msg = "\ntest MQTT message from C client";
    mosquitto_publish(mosq, &msgid, topic, strlen(msg), msg, QOS, true);  
 
    mosquitto_destroy(mosq);
