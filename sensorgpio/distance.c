@@ -1,6 +1,13 @@
 #include <wiringPi.h>
 #include <time.h>
+
 #define TTL_DELAY 10
+
+void setupHC(uint8_t echo, uint8_t trig) {
+   wiringPiSetup();
+   pinMode(echo, INPUT);
+   pinMode(trig, OUTPUT);
+}
 
 void sendTTL(uint8_t pin) {
    digitalWrite(pin, HIGH);
@@ -8,7 +15,7 @@ void sendTTL(uint8_t pin) {
    digitalWrite(pin, LOW);
 }
 
-uint32_t getDistance(uint8_pin) {
+uint32_t getDistance(uint8_t pin) {
    timeval start, end, diff;
    uint16_t tv_ret;
 
