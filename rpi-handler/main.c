@@ -1,48 +1,75 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdint.h>
+#include <unistd.h>
 #include <mosquitto.h>
 #include <string.h>
+#include "distance.h"
 
 #define HOST_PORT 1883
 #define KEEPALIVE 60
 #define QOS 1
 #define ECHO 0
 #define TRIG 2
+#define MAX_DIST 20000
+#define NUM_US 1000
+#define MIN_TIME 1000
 
 void sendUpdate(struct mosquitto *mosq);
 int mqttInit(struct mosquitto **mosq, char *host);
+void mainLoop(struct mosquitto *mosq);
 
 int main(int argc, char *argv[]) {
    struct mosquitto *mosq = NULL;
+   char *host = "35.164.180.85";
    uint32_t lastDist = 0;
 
    setupHC(ECHO, TRIG);
-   if (mqtt_init(&mosq, host)) {
+   if (mqttInit(&mosq, host)) {
       return 1;
    }
    
    mainLoop(mosq);
    while (1) {
-      lastDist = getDistance(ECHO);  
+      lastDist = getDistance(ECHO, TRIG);  
    }
+   return 0;
 }
 
 void mainLoop(struct mosquitto *mosq) {
-   char *host = "35.164.180.85";
+   uint8_t numDetect = 0, d_flag = 0;
+   uint32_t dist;
 
+   while (1) {
+      dist = getDistance(ECHO, TRIG);
+      if (dist && dist < MAX_DIST) {
+         d_flag = 1;
+         numDetect++;
+         usleep(NUM_US);
+      }
+      else {
+         if (d_flag) {
+            if (numDetect >= MIN_TIME) {
+               printf("Pass\n");
+               sendUpdate(mosq);
+            }
+            d_flag = 0;
+            numDetect = 0;
+         }
+      }
+   }
 }
 
-void sendUpdate(struct mosquitto *mosq, char *host) { 
+void sendUpdate(struct mosquitto *mosq) { 
    char *topic, *msg;
    int msgid;
 
    topic = "test";
-   msg = "\ntest MQTT message from C client";
+   msg = "\nObject passed";
    mosquitto_publish(mosq, &msgid, topic, strlen(msg), msg, QOS, true);  
 
    mosquitto_destroy(mosq);
    mosquitto_lib_cleanup();
-   return 0;
 }
 
 int mqttInit(struct mosquitto **mosq, char *host) {
