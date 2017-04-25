@@ -42,15 +42,17 @@ void mainLoop(struct mosquitto *mosq) {
    uint8_t numDetect = 0, d_flag = 0;
    uint32_t dist;
    char *buf = calloc(1, MAX_FNAME);
-   time_t tval = time(NULL);
+   time_t tval = time(NULL), start_t, end_t;
    struct tm *curtime = localtime(&tval);
+   double diff_t;
+   time(&start_t);
    
    strcpy(buf, "test", 4);
    strftime(buf + 4, MAX_FNAME, "%m-%d_%H-%M", curtime);
    strcpy(buf + strlen(buf), ".csv", 4);
-   int fd = fopen(buf, w);
+   FILE *fd = fopen(buf, w);
 
-   while (1) {
+   /*while (1) {
       dist = getDistance(ECHO, TRIG);
       if (dist && dist < MAX_DIST) {
          d_flag = 1;
@@ -67,7 +69,14 @@ void mainLoop(struct mosquitto *mosq) {
             numDetect = 0;
          }
       }
+   }*/
+   for (i = 0; i < MAX_SAMPLES; i++) {
+      dist = getDistance(ECHO, TRIG);
+      time(&end_t);
+      diff_t = difftime(end_t, start_t);
+      fprintf(fd, "%f,%d\n", diff_t, dist);
    }
+   fclose(fd);
 }
 
 void sendUpdate(struct mosquitto *mosq) { 
