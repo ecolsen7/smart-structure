@@ -5,18 +5,19 @@
 #include <mosquitto.h>
 #include <string.h>
 #include "distance.h"
-#include <ctime>
-#include <iostream>
+#include <time.h>
 
 #define HOST_PORT 1883
 #define KEEPALIVE 60
 #define QOS 1
-#define ECHO 0
-#define TRIG 2
-#define MAX_DIST 20000
-#define NUM_US 1000
-#define MIN_TIME 1000
+#define ECHO 2
+#define TRIG 0
+#define MAX_DIST 7000
+#define NUM_US 5000
+#define MIN_TIME 50
 #define MAX_FNAME 30
+#define MAX_SAMPLES 1000
+
 void sendUpdate(struct mosquitto *mosq);
 int mqttInit(struct mosquitto **mosq, char *host);
 void mainLoop(struct mosquitto *mosq);
@@ -32,51 +33,55 @@ int main(int argc, char *argv[]) {
    }
    
    mainLoop(mosq);
-   while (1) {
+   /*while (1) {
       lastDist = getDistance(ECHO, TRIG);  
-   }
+   }*/
    return 0;
 }
 
 void mainLoop(struct mosquitto *mosq) {
-   uint8_t numDetect = 0, d_flag = 0;
-   uint32_t dist;
+   uint8_t d_flag = 0;
+   int32_t dist, i, numDetect = 0;
    char *buf = calloc(1, MAX_FNAME);
    time_t tval = time(NULL), start_t, end_t;
    struct tm *curtime = localtime(&tval);
    double diff_t;
    time(&start_t);
    
-   strcpy(buf, "test", 4);
+   strcpy(buf, "test");
    strftime(buf + 4, MAX_FNAME, "%m-%d_%H-%M", curtime);
-   strcpy(buf + strlen(buf), ".csv", 4);
-   FILE *fd = fopen(buf, w);
+   strcpy(buf + strlen(buf), ".csv");
+   //FILE *fd = fopen(buf, "w");
 
-   /*while (1) {
+   while (1) {
+      usleep(NUM_US);
       dist = getDistance(ECHO, TRIG);
-      if (dist && dist < MAX_DIST) {
+      if (dist > 0 && dist < MAX_DIST) {
          d_flag = 1;
          numDetect++;
-         usleep(NUM_US);
-      }
-      else {
+	 printf("%f  %d\n", dist / 58.8, numDetect);
+      }  
+      else if (dist > 0 && dist >= MAX_DIST) {
          if (d_flag) {
             if (numDetect >= MIN_TIME) {
-               printf("Pass\n");
                sendUpdate(mosq);
             }
             d_flag = 0;
             numDetect = 0;
          }
       }
-   }*/
-   for (i = 0; i < MAX_SAMPLES; i++) {
-      dist = getDistance(ECHO, TRIG);
-      time(&end_t);
-      diff_t = difftime(end_t, start_t);
-      fprintf(fd, "%f,%d\n", diff_t, dist);
    }
-   fclose(fd);
+   /*for (i = 0; i < MAX_SAMPLES; i++) {
+      dist = getDistance(ECHO, TRIG);
+      //time(&end_t);
+      //diff_t = difftime(end_t, start_t);
+      //printf("%d\n", dist);
+      fprintf(fd, "%d,%d\n", i, dist);
+      usleep(NUM_US);
+   }*/
+   printf("Done\n");
+   //fclose(fd);
+
 }
 
 void sendUpdate(struct mosquitto *mosq) { 
@@ -84,11 +89,8 @@ void sendUpdate(struct mosquitto *mosq) {
    int msgid;
 
    topic = "test";
-   msg = "\nObject passed";
+   msg = "2u";
    mosquitto_publish(mosq, &msgid, topic, strlen(msg), msg, QOS, true);  
-
-   mosquitto_destroy(mosq);
-   mosquitto_lib_cleanup();
 }
 
 int mqttInit(struct mosquitto **mosq, char *host) {
