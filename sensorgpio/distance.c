@@ -32,7 +32,6 @@ uint32_t getDistance(uint8_t pin) {
 
 void waitForBtn(uint8_t btn) {
    while(!digitalRead(btn))
-   return;
 }
 
 void setLED(uint8_t pin, uint8_t val) {
