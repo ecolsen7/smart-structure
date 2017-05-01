@@ -29,3 +29,8 @@ uint32_t getDistance(uint8_t pin) {
    timersub(&end, &start, &diff);
    return (uint32_t)(diff.tv_usec);
 }
+
+void waitForBtn(uint8_t btn) {
+   while(!digitalRead(btn))
+   return;
+}
