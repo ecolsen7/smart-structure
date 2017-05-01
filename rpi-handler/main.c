@@ -12,11 +12,14 @@
 #define QOS 1
 #define ECHO 2
 #define TRIG 0
+#define BTN 3
+#define LED 4
 #define MAX_DIST 7000
 #define NUM_US 5000
 #define MIN_TIME 50
 #define MAX_FNAME 30
 #define MAX_SAMPLES 1000
+#define MAX_LED 255
 
 void sendUpdate(struct mosquitto *mosq);
 int mqttInit(struct mosquitto **mosq, char *host);
@@ -51,9 +54,9 @@ void mainLoop(struct mosquitto *mosq) {
    strcpy(buf, "test");
    strftime(buf + 4, MAX_FNAME, "%m-%d_%H-%M", curtime);
    strcpy(buf + strlen(buf), ".csv");
-   //FILE *fd = fopen(buf, "w");
+   FILE *fd = fopen(buf, "w");
 
-   while (1) {
+   /*while (1) {
       usleep(NUM_US);
       dist = getDistance(ECHO, TRIG);
       if (dist > 0 && dist < MAX_DIST) {
@@ -70,17 +73,22 @@ void mainLoop(struct mosquitto *mosq) {
             numDetect = 0;
          }
       }
-   }
-   /*for (i = 0; i < MAX_SAMPLES; i++) {
-      dist = getDistance(ECHO, TRIG);
-      //time(&end_t);
-      //diff_t = difftime(end_t, start_t);
-      //printf("%d\n", dist);
-      fprintf(fd, "%d,%d\n", i, dist);
-      usleep(NUM_US);
    }*/
+   while (1) {
+      waitForBtn(BTN);
+      setLED(LED, MAX_LED);
+      for (i = 0; i < MAX_SAMPLES; i++) {
+         dist = getDistance(ECHO, TRIG);
+         time(&end_t);
+         diff_t = difftime(end_t, start_t);
+         //printf("%f\n", dist);
+         fprintf(fd, "%d,%d\n", i, dist);
+         usleep(NUM_US);
+      }
+      setLED(LED, 0)
+   }
    printf("Done\n");
-   //fclose(fd);
+   fclose(fd);
 
 }
 
